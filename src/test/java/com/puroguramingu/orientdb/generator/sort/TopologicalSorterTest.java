@@ -5,7 +5,6 @@ import com.puroguramingu.orientdb.generator.ParentsParentClass;
 import com.puroguramingu.orientdb.generator.TestClass;
 import com.puroguramingu.orientdb.generator.annotations.Entity;
 import org.assertj.core.api.Assertions;
-import org.junit.Assert;
 import org.junit.Test;
 import org.reflections.Reflections;
 
@@ -54,11 +53,11 @@ public class TopologicalSorterTest {
     }.iterator();
 
     // then
-    Assertions.assertThat(sorted).isNotNull().hasSize(4);
+    Assertions.assertThat(sorted).isNotNull().hasSize(5);
     Iterator<Class<?>> iterator = sorted.iterator();
     Class<?> currentOrdered = order.next();
-    while(iterator.hasNext()) {
-      if(iterator.next().equals(currentOrdered) && order.hasNext()) {
+    while (iterator.hasNext()) {
+      if (iterator.next().equals(currentOrdered) && order.hasNext()) {
         currentOrdered = order.next();
       }
     }

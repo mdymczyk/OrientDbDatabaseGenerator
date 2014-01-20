@@ -1,5 +1,6 @@
 package com.puroguramingu.orientdb.generator.sort;
 
+import com.puroguramingu.orientdb.generator.None;
 import com.puroguramingu.orientdb.generator.annotations.Entity;
 
 import java.util.LinkedHashSet;
@@ -14,7 +15,7 @@ public class TopologicalSorter {
     LinkedHashSet<Class<?>> sorted = new LinkedHashSet<>();
     for (Class<?> type : typesAnnotatedWith) {
       Class<?> parent = getParent(type);
-      if (!parent.isInstance(Object.class)) {
+      if (!parent.equals(None.class)) {
         if (!sorted.contains(parent)) {
           addParent(parent, sorted);
         }
@@ -33,7 +34,7 @@ public class TopologicalSorter {
 
   private static void addParent(Class<?> parent, LinkedHashSet<Class<?>> sorted) {
     Class<?> parentsParent = getParent(parent);
-    if (!parentsParent.isInstance(Object.class)) {
+    if (!parentsParent.equals(None.class)) {
       addParent(parentsParent, sorted);
     }
     sorted.add(parent);

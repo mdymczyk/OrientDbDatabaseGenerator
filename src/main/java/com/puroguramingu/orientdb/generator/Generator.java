@@ -53,13 +53,13 @@ public class Generator {
 
     OClass klazz;
     if (entityAnnotation.isAbstract()) {
-      klazz = schema.createAbstractClass(getLowerCaseClassName(entity));
+      klazz = schema.createAbstractClass(getLowerCaseClassName(entity, entityAnnotation));
     } else {
-      klazz = schema.createClass(getLowerCaseClassName(entity));
+      klazz = schema.createClass(getLowerCaseClassName(entity, entityAnnotation));
     }
 
     if (!entityAnnotation.parent().isInstance(Object.class)) {
-      klazz.setSuperClass(schema.getClass(getLowerCaseClassName(entityAnnotation.parent())));
+      klazz.setSuperClass(schema.getClass(getLowerCaseClassName(entityAnnotation.parent(), entityAnnotation)));
     }
 
     addDbClassProperties(entity, klazz);
@@ -77,7 +77,9 @@ public class Generator {
     return null;
   }
 
-  private static String getLowerCaseClassName(Class entity) {
-    return entity.getSimpleName().toLowerCase();
+  private static String getLowerCaseClassName(Class entity, Entity entityAnnotation) {
+    return entityAnnotation.name().isEmpty()
+              ? entity.getSimpleName().toLowerCase()
+              : entityAnnotation.name();
   }
 }

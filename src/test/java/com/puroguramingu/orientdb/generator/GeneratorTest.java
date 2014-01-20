@@ -61,6 +61,20 @@ public class GeneratorTest {
   }
 
   @Test
+  public void shouldCreateDbClassWithCustomName() {
+    // given
+
+    // when
+    Generator.main(new String[]{"-dbName", "database"});
+
+    // then
+    ODatabaseDocumentTx db = openTestDb();
+    Assertions.assertThat(db.getMetadata().getSchema().getClass("myclass")).isNotNull();
+
+  }
+
+
+  @Test
   public void shouldCreateDbAbstractClass() {
     // GIVEN
 
