@@ -2,9 +2,15 @@ package com.puroguramingu.orientdb.generator;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.orientechnologies.orient.core.serialization.OSerializableStream;
+import com.puroguramingu.orientdb.generator.annotations.DocumentField;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Test;
+
+import java.math.BigDecimal;
+import java.util.Date;
 
 public class GeneratorTest {
 
@@ -101,6 +107,62 @@ public class GeneratorTest {
     Assertions.assertThat(testClass.isAbstract()).isFalse();
     Assertions.assertThat(testClass.isSubClassOf("parentclass")).isTrue();
     Assertions.assertThat(db.getMetadata().getSchema().getClass("parentclass").isSuperClassOf(testClass)).isTrue();
+  }
+
+  @Test
+  public void shouldCreateDbClassWithBasicFields() {
+    // GIVEN
+
+    // WHEN
+    Generator.main(new String[]{"-dbName", "database"});
+
+    // THEN
+    ODatabaseDocumentTx db = openTestDb();
+    OClass testClass = db.getMetadata().getSchema().getClass("fieldedclass");
+    Assertions.assertThat(testClass).isNotNull();
+    Assertions.assertThat(testClass.properties()).hasSize(12);
+    Assertions.assertThat(testClass.getProperty("byteField").getType()).isEqualTo(OType.BYTE);
+    Assertions.assertThat(testClass.getProperty("decimalField").getType()).isEqualTo(OType.DECIMAL);
+    Assertions.assertThat(testClass.getProperty("customField").getType()).isEqualTo(OType.CUSTOM);
+    Assertions.assertThat(testClass.getProperty("binaryField").getType()).isEqualTo(OType.BINARY);
+    Assertions.assertThat(testClass.getProperty("datetimeField").getType()).isEqualTo(OType.DATETIME);
+    Assertions.assertThat(testClass.getProperty("dateField").getType()).isEqualTo(OType.DATE);
+    Assertions.assertThat(testClass.getProperty("stringField").getType()).isEqualTo(OType.STRING);
+    Assertions.assertThat(testClass.getProperty("doubleField").getType()).isEqualTo(OType.DOUBLE);
+    Assertions.assertThat(testClass.getProperty("floatField").getType()).isEqualTo(OType.FLOAT);
+    Assertions.assertThat(testClass.getProperty("longField").getType()).isEqualTo(OType.LONG);
+    Assertions.assertThat(testClass.getProperty("intField").getType()).isEqualTo(OType.INTEGER);
+    Assertions.assertThat(testClass.getProperty("shortField").getType()).isEqualTo(OType.SHORT);
+  }
+
+  @Test
+  public void shouldCreateDbClassWithBasicFieldsAndRestrictions() {
+    // GIVEN
+
+    // WHEN
+    Generator.main(new String[]{"-dbName", "database"});
+
+    // THEN
+    ODatabaseDocumentTx db = openTestDb();
+    OClass testClass = db.getMetadata().getSchema().getClass("fieldedclass");
+    Assertions.assertThat(testClass).isNotNull();
+    Assertions.assertThat(testClass.properties()).hasSize(12);
+    Assertions.assertThat(testClass.getProperty("byteField").getType()).isEqualTo(OType.BYTE);
+    Assertions.assertThat(testClass.getProperty("decimalField").getType()).isEqualTo(OType.DECIMAL);
+    Assertions.assertThat(testClass.getProperty("customField").getType()).isEqualTo(OType.CUSTOM);
+    Assertions.assertThat(testClass.getProperty("binaryField").getType()).isEqualTo(OType.BINARY);
+    Assertions.assertThat(testClass.getProperty("datetimeField").getType()).isEqualTo(OType.DATETIME);
+    Assertions.assertThat(testClass.getProperty("dateField").getType()).isEqualTo(OType.DATE);
+    Assertions.assertThat(testClass.getProperty("stringField").getType()).isEqualTo(OType.STRING);
+    Assertions.assertThat(testClass.getProperty("doubleField").getType()).isEqualTo(OType.DOUBLE);
+    Assertions.assertThat(testClass.getProperty("floatField").getType()).isEqualTo(OType.FLOAT);
+    Assertions.assertThat(testClass.getProperty("longField").getType()).isEqualTo(OType.LONG);
+    Assertions.assertThat(testClass.getProperty("intField").getType()).isEqualTo(OType.INTEGER);
+    Assertions.assertThat(testClass.getProperty("intField").getMin()).isEqualTo("1");
+    Assertions.assertThat(testClass.getProperty("intField").getMax()).isEqualTo("10");
+    Assertions.assertThat(testClass.getProperty("intField").isNotNull()).isEqualTo(true);
+    Assertions.assertThat(testClass.getProperty("intField").isMandatory()).isEqualTo(false);
+    Assertions.assertThat(testClass.getProperty("shortField").getType()).isEqualTo(OType.SHORT);
   }
 
   private ODatabaseDocumentTx openTestDb() {

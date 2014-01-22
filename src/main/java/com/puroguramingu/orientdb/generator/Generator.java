@@ -3,8 +3,8 @@ package com.puroguramingu.orientdb.generator;
 import com.beust.jcommander.JCommander;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.puroguramingu.orientdb.generator.annotations.DocumentField;
 import com.puroguramingu.orientdb.generator.annotations.Entity;
 import com.puroguramingu.orientdb.generator.sort.TopologicalSorter;
@@ -63,23 +63,27 @@ public class Generator {
     }
 
     addDbClassProperties(entity, klazz);
-
   }
 
   private static void addDbClassProperties(Class entity, OClass oEntity) {
     Set<Field> fields = ReflectionUtils.getAllFields(entity, ReflectionUtils.withAnnotation(DocumentField.class));
-    for(Field field : fields) {
-      oEntity.createProperty(field.getName(), getOType(field.getType()));
+    for (Field field : fields) {
+      DocumentField docFieldMetadata = field.getAnnotation(DocumentField.class);
+      OProperty property = oEntity.createProperty(field.getName(), docFieldMetadata.fieldType());
+      if (!docFieldMetadata.min().isEmpty()) {
+        property.setMin(docFieldMetadata.min());
+      }
+      if (!docFieldMetadata.max().isEmpty()) {
+        property.setMax(docFieldMetadata.max());
+      }
+      property.setMandatory(docFieldMetadata.mandatory());
+      property.setNotNull(docFieldMetadata.notnull());
     }
-  }
-
-  private static OType getOType(Class<?> type) {
-    return null;
   }
 
   private static String getLowerCaseClassName(Class entity, Entity entityAnnotation) {
     return entityAnnotation.name().isEmpty()
-              ? entity.getSimpleName().toLowerCase()
-              : entityAnnotation.name();
+        ? entity.getSimpleName().toLowerCase()
+        : entityAnnotation.name();
   }
 }

@@ -53,7 +53,7 @@ public class TopologicalSorterTest {
     }.iterator();
 
     // then
-    Assertions.assertThat(sorted).isNotNull().hasSize(5);
+    Assertions.assertThat(sorted).isNotNull().hasSize(6);
     Iterator<Class<?>> iterator = sorted.iterator();
     Class<?> currentOrdered = order.next();
     while (iterator.hasNext()) {
