@@ -2,15 +2,12 @@ package com.puroguramingu.orientdb.generator;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.serialization.OSerializableStream;
-import com.puroguramingu.orientdb.generator.annotations.DocumentField;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.util.Date;
 
 public class GeneratorTest {
 
@@ -160,9 +157,28 @@ public class GeneratorTest {
     Assertions.assertThat(testClass.getProperty("intField").getType()).isEqualTo(OType.INTEGER);
     Assertions.assertThat(testClass.getProperty("intField").getMin()).isEqualTo("1");
     Assertions.assertThat(testClass.getProperty("intField").getMax()).isEqualTo("10");
+    Assertions.assertThat(testClass.getProperty("intField").isReadonly()).isEqualTo(true);
     Assertions.assertThat(testClass.getProperty("intField").isNotNull()).isEqualTo(true);
     Assertions.assertThat(testClass.getProperty("intField").isMandatory()).isEqualTo(false);
     Assertions.assertThat(testClass.getProperty("shortField").getType()).isEqualTo(OType.SHORT);
+  }
+
+  @Test
+  public void shouldCreateUniqueIndex() {
+    // GIVEN
+
+    // WHEN
+    Generator.main(new String[]{"-dbName", "database"});
+
+    // THEN
+    ODatabaseDocumentTx db = openTestDb();
+    OSchema schema = db.getMetadata().getSchema();
+    OClass testClass = schema.getClass("fieldedclass");
+    Assertions.assertThat(testClass).isNotNull();
+    Assertions.assertThat(testClass.properties()).hasSize(12);
+    Assertions.assertThat(testClass.getProperty("stringField").getType()).isEqualTo(OType.STRING);
+    Assertions.assertThat(testClass.getProperty("stringField").getAllIndexes()).isNotNull().isNotEmpty().hasSize(1);
+    Assertions.assertThat(testClass.getProperty("stringField").getAllIndexes().iterator().next().getType()).isEqualTo(OClass.INDEX_TYPE.UNIQUE.toString());
   }
 
   private ODatabaseDocumentTx openTestDb() {

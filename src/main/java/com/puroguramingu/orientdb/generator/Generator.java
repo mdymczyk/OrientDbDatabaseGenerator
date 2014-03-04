@@ -5,24 +5,30 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
-import com.puroguramingu.orientdb.generator.annotations.DocumentField;
-import com.puroguramingu.orientdb.generator.annotations.Entity;
+import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.puroguramingu.orientdb.generator.annotations.*;
 import com.puroguramingu.orientdb.generator.sort.TopologicalSorter;
 import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class Generator {
 
+  public Map<Class<?>, OClass> dbClasses = new HashMap<>();
+
   public static void main(String[] args) {
     CmdLineArgs parsedArgs = new CmdLineArgs();
     new JCommander(parsedArgs, args);
-    createDb(parsedArgs);
+    Generator generator = new Generator();
+    generator.createDb(parsedArgs);
   }
 
-  private static void createDb(CmdLineArgs parsedArgs) {
+  private void createDb(CmdLineArgs parsedArgs) {
     try (ODatabaseDocumentTx db = new ODatabaseDocumentTx("local:" + parsedArgs.getDbName())) {
       if (db.exists() && parsedArgs.isDelete()) {
         db.open("admin", "admin");
@@ -36,19 +42,22 @@ public class Generator {
     }
   }
 
-  private static void addSchema(ODatabaseDocumentTx db) {
+  private void addSchema(ODatabaseDocumentTx db) {
     OSchema schema = db.getMetadata().getSchema();
 
     Reflections reflections = new Reflections("");
     Set<Class<?>> entities = TopologicalSorter.sort(reflections.getTypesAnnotatedWith(Entity.class));
 
     for (Class entity : entities) {
-      createDbClass(schema, entity);
+      dbClasses.put(entity, createDbClass(schema, entity));
     }
 
+    for (Map.Entry<Class<?>, OClass> entry : dbClasses.entrySet()) {
+      addDbClassProperties(entry.getKey(), entry.getValue());
+    }
   }
 
-  private static void createDbClass(OSchema schema, Class entity) {
+  private OClass createDbClass(OSchema schema, Class entity) {
     Entity entityAnnotation = (Entity) entity.getAnnotation(Entity.class);
 
     OClass klazz;
@@ -62,26 +71,48 @@ public class Generator {
       klazz.setSuperClass(schema.getClass(getLowerCaseClassName(entityAnnotation.parent(), entityAnnotation)));
     }
 
-    addDbClassProperties(entity, klazz);
+    return klazz;
   }
 
-  private static void addDbClassProperties(Class entity, OClass oEntity) {
-    Set<Field> fields = ReflectionUtils.getAllFields(entity, ReflectionUtils.withAnnotation(DocumentField.class));
+  private void addDbClassProperties(Class entity, OClass oEntity) {
+    Set<Field> fields = new HashSet<>(ReflectionUtils.getAllFields(entity, ReflectionUtils.withAnnotation(BasicField.class)));
+    fields.addAll(ReflectionUtils.getAllFields(entity, ReflectionUtils.withAnnotation(EmbeddedField.class)));
+    fields.addAll(ReflectionUtils.getAllFields(entity, ReflectionUtils.withAnnotation(LinkField.class)));
     for (Field field : fields) {
-      DocumentField docFieldMetadata = field.getAnnotation(DocumentField.class);
-      OProperty property = oEntity.createProperty(field.getName(), docFieldMetadata.fieldType());
-      if (!docFieldMetadata.min().isEmpty()) {
-        property.setMin(docFieldMetadata.min());
+      OProperty property;
+      if (field.getAnnotation(EmbeddedField.class) != null) {
+        property = oEntity.createProperty(field.getName(), OType.EMBEDDED, dbClasses.get(field.getAnnotation(EmbeddedField.class).target()));
+      } else if (field.getAnnotation(LinkField.class) != null) {
+        property = oEntity.createProperty(field.getName(), OType.LINK, dbClasses.get(field.getAnnotation(LinkField.class).target()));
+      } else {
+        property = oEntity.createProperty(field.getName(), field.getAnnotation(BasicField.class).fieldType());
       }
-      if (!docFieldMetadata.max().isEmpty()) {
-        property.setMax(docFieldMetadata.max());
+
+      FieldProperties docFieldMetadata = field.getAnnotation(FieldProperties.class);
+      if (null != docFieldMetadata) {
+        if (!docFieldMetadata.fieldName().isEmpty()) {
+          property.setName(docFieldMetadata.fieldName());
+        }
+
+        if (!docFieldMetadata.min().isEmpty()) {
+          property.setMin(docFieldMetadata.min());
+        }
+        if (!docFieldMetadata.max().isEmpty()) {
+          property.setMax(docFieldMetadata.max());
+        }
+
+        property.setMandatory(docFieldMetadata.mandatory());
+        property.setNotNull(docFieldMetadata.notnull());
+        property.setReadonly(docFieldMetadata.readonly());
+
+        if (docFieldMetadata.unique()) {
+          oEntity.createIndex(field.getName() + "Idx", OClass.INDEX_TYPE.UNIQUE, field.getName());
+        }
       }
-      property.setMandatory(docFieldMetadata.mandatory());
-      property.setNotNull(docFieldMetadata.notnull());
     }
   }
 
-  private static String getLowerCaseClassName(Class entity, Entity entityAnnotation) {
+  private String getLowerCaseClassName(Class entity, Entity entityAnnotation) {
     return entityAnnotation.name().isEmpty()
         ? entity.getSimpleName().toLowerCase()
         : entityAnnotation.name();
